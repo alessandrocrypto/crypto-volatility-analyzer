@@ -4,8 +4,8 @@ import pandas as pd
 
 def fetch_klines(symbol, interval="1d", limit=100):
     """
-    Получение исторических свечей с Bybit
-    Возвращает DataFrame в том же формате, что и Binance
+    Получение исторических свечей с Bybit.
+    Возвращает DataFrame в формате Binance, чтобы не менять остальной код.
     """
 
     interval_map = {
@@ -31,28 +31,44 @@ def fetch_klines(symbol, interval="1d", limit=100):
 
     data = response.json()
 
-    if data["retCode"] != 0:
-        raise Exception(f"Bybit error: {data}")
+    if data.get("retCode") != 0:
+        raise Exception(f"Bybit API error: {data}")
 
     rows = data["result"]["list"]
 
-    rows.reverse()
+    # Bybit отдаёт от новых к старым, разворачиваем
+    rows = list(reversed(rows))
 
-    df = pd.DataFrame(rows, columns=[
-        "open_time",
-        "open",
-        "high",
-        "low",
-        "close",
-        "volume",
-        "turnover"
+    binance_rows = []
+
+    for row in rows:
+        open_time = int(row[0])
+        open_price = row[1]
+        high = row[2]
+        low = row[3]
+        close = row[4]
+        volume = row[5]
+        turnover = row[6]
+
+        binance_rows.append([
+            open_time,
+            open_price,
+            high,
+            low,
+            close,
+            volume,
+            None,
+            turnover,
+            None,
+            None,
+            None,
+            None
+        ])
+
+    df = pd.DataFrame(binance_rows, columns=[
+        "open_time", "open", "high", "low", "close", "volume",
+        "close_time", "quote_asset_volume", "number_of_trades",
+        "taker_buy_base_asset_volume", "taker_buy_quote_asset_volume", "ignore"
     ])
-
-    df["close_time"] = None
-    df["quote_asset_volume"] = None
-    df["number_of_trades"] = None
-    df["taker_buy_base_asset_volume"] = None
-    df["taker_buy_quote_asset_volume"] = None
-    df["ignore"] = None
 
     return df
