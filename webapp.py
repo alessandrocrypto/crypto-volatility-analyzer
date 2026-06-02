@@ -137,25 +137,40 @@ def download_report():
 @app.on_event("startup")
 async def start_bot():
     print("🌀 Вызван start_bot()")
+
     if not BOT_TOKEN:
         print("⚠️ BOT_TOKEN не задан в переменных окружения.")
         return
 
     application.add_handler(CommandHandler("start", start_command))
+
     for d in [5, 10, 30, 90]:
-        application.add_handler(CommandHandler(f"analyze_{d}", make_analyze_handler(d)))
+        application.add_handler(
+            CommandHandler(f"analyze_{d}", make_analyze_handler(d))
+        )
 
     global bot
     bot = application.bot
-    
-    await daily_volatility_alert()
+
+    try:
+        await daily_volatility_alert()
+    except Exception as e:
+        print(f"⚠️ Ошибка daily_volatility_alert: {e}")
 
     await application.initialize()
     await application.start()
-    await application.bot.set_webhook("https://crypto-volatility-analyzer.onrender.com/webhook")
+
+    await application.bot.set_webhook(
+        "https://crypto-volatility-analyzer.onrender.com/webhook"
+    )
+
     print("✅ Webhook установлен")
 
-    scheduler.add_job(daily_volatility_alert, CronTrigger(hour=6, minute=0))
+    scheduler.add_job(
+        daily_volatility_alert,
+        CronTrigger(hour=6, minute=0)
+    )
+
     scheduler.start()
 
 # Обработка webhook-запросов от Telegram
